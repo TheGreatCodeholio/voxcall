@@ -1,0 +1,73 @@
+.brand {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 1.1rem;
+}
+
+.lcd {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 700;
+}
+
+.led {
+  min-width: 58px;
+  text-align: center;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.04em;
+}
+
+.pill {
+  min-width: 56px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 800;
+  text-align: center;
+}
+
+.sigbar {
+  height: 20px;
+  border-radius: 10px;
+}
+
+.readout {
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.readoutPct {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.readoutDb {
+  font-size: 0.8rem;
+}
+
+.thr-marker {
+    position: relative;
+    height: 0;
+    --thr: 0; /* 0..1 */
+}
+.thr-marker::after {
+    content: "";
+    position: absolute;
+    top: -22px;
+    left: calc(var(--thr) * 100%);
+    width: 2px;
+    height: 44px;
+    background: rgba(255,255,255,0.55);
+    transform: translateX(-1px);
+}

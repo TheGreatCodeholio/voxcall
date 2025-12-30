@@ -1,0 +1,14 @@
+fastapi>=0.128.0
+uvicorn>=0.36.1
+
+# Core deps
+numpy>=1.26
+pyaudio>=0.2.14
+urllib3>=2.0
+ttkbootstrap>=1.19.2
+
+# GUI is stdlib (tkinter), configparser/logging/threading are stdlib
+
+# Optional (only if you want to build executables)
+pyinstaller>=6.0
+pillow>=12.0.0
