@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import logging
+import sys
 import threading
 from pathlib import Path
 from typing import Optional, Tuple, Any
 
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
-from tkinter import StringVar, IntVar, DoubleVar, BooleanVar, filedialog
+from tkinter import StringVar, IntVar, DoubleVar, BooleanVar, filedialog, PhotoImage
 
 from voxcall.config import load_config, save_config
 from voxcall.audio.devices import list_input_devices
@@ -14,6 +16,7 @@ from voxcall.engine import VoxCallEngine, UiHooks
 from voxcall.ui.widgets import validate_number
 from voxcall.paths import resource_path
 
+log = logging.getLogger(__name__)
 
 def _validate_float(P: str) -> bool:
     """Allow empty, digits, or one decimal point."""
@@ -45,14 +48,9 @@ class VoxCallGui:
 
         self.root = tb.Window(themename=theme)
         self.root.title(f"VoxCall • {version}")
-        #self.root.minsize(900, 680)
+        self._apply_window_icon()
+        self.root.minsize(900, 680)
         #self.root.geometry("1020x760")
-
-
-        try:
-            self.root.iconbitmap(str(resource_path("resources/voxcall.ico")))
-        except Exception:
-            pass
 
         if getattr(self.cfg, "start_minimized", False):
             self.root.iconify()
@@ -124,6 +122,30 @@ class VoxCallGui:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     # ---------------- UI ----------------
+    def _apply_window_icon(self) -> None:
+        """
+        Window/title/alt-tab icon:
+        - Use PNG via iconphoto everywhere (best cross-platform)
+        - Also set ICO via iconbitmap on Windows for best compatibility
+        """
+
+        ico = resource_path("resources/voxcall.ico")
+        png = resource_path("resources/voxcall.png")
+
+        # Cross-platform window icon (Linux/Windows alt-tab/titlebar)
+        if png.exists():
+            try:
+                self._icon_img = PhotoImage(file=str(png))  # keep reference!
+                self.root.iconphoto(True, self._icon_img)
+            except Exception as e:
+                log.warning("iconphoto failed (%s): %s", png, e)
+
+        # Windows-specific: also set .ico (helps in some cases)
+        if sys.platform.startswith("win") and ico.exists():
+            try:
+                self.root.iconbitmap(default=str(ico))
+            except Exception as e:
+                log.warning("iconbitmap failed (%s): %s", ico, e)
 
     def _build(self):
         # One “surface” frame so everything feels like one window, not nested boxes.
@@ -163,7 +185,7 @@ class VoxCallGui:
         nb.add(self.tab_general, text="General")
         nb.add(self.tab_audio, text="Audio")
         nb.add(self.tab_bcfy, text="Broadcastify")
-        nb.add(self.tab_rdio, text="rdio-scanner")
+        nb.add(self.tab_rdio, text="RDIO")
         nb.add(self.tab_omhz, text="OpenMHz")
 
         self._build_tab_general()

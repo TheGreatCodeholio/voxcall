@@ -1,8 +1,12 @@
 from __future__ import annotations
+
+import logging
 from dataclasses import dataclass, field
 from configparser import ConfigParser
 from pathlib import Path
 import os
+
+log = logging.getLogger(__name__)
 
 @dataclass
 class AudioCfg:
@@ -100,6 +104,8 @@ def load_config(path: Path) -> AppCfg:
     return cfg
 
 def save_config(path: Path, cfg: AppCfg) -> None:
+    path = Path(os.path.expanduser(str(path))).resolve()
+    log.warning("save_config() writing to: %s (cwd=%s)", path, Path.cwd())
     p = ConfigParser()
     p.read(path)
     if "Section1" not in p.sections():
@@ -148,3 +154,7 @@ def save_config(path: Path, cfg: AppCfg) -> None:
     with tmp.open("w", encoding="utf-8") as f:
         p.write(f)
     os.replace(tmp, path)
+    log.warning("save_config() wrote OK: exists=%s size=%s",
+                path.exists(),
+                path.stat().st_size if path.exists() else None)
+

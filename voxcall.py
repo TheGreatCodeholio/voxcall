@@ -69,13 +69,9 @@ def ensure_config(cfg_path: Path) -> None:
 
 
 def run_cli(cfg_path: Path, version: str) -> int:
-    """
-    True headless mode: run engine in foreground and log status changes.
-    """
     cfg = load_config(cfg_path)
 
     def _status(s: str):
-        # keep it simple; your logger will capture this too
         print(s, flush=True)
 
     hooks = UiHooks(
@@ -85,24 +81,76 @@ def run_cli(cfg_path: Path, version: str) -> int:
     )
 
     engine = VoxCallEngine(cfg, version=version, hooks=hooks)
+
     try:
         engine.run_forever()
         return 0
     except KeyboardInterrupt:
-        engine.stop()
+        print("Stopping…", flush=True)
         return 0
+    finally:
+        try:
+            engine.stop()
+        except Exception:
+            pass
 
 
 def run_gui(cfg_path: Path, version: str) -> int:
+    import signal
+
     app = VoxCallGui(cfg_path=cfg_path, version=version, theme="darkly")
-    app.run()
-    return 0
+
+    # Install SIGINT handler so Ctrl-C shuts down cleanly (no traceback)
+    old_handler = signal.getsignal(signal.SIGINT)
+
+    def _handle_sigint(signum, frame):
+        try:
+            # Schedule on Tk thread
+            app.root.after(0, app._exit)
+        except Exception:
+            try:
+                app._exit()
+            except Exception:
+                pass
+
+    try:
+        signal.signal(signal.SIGINT, _handle_sigint)
+    except Exception:
+        # If signal handler can't be set (rare), we'll still catch KeyboardInterrupt below
+        pass
+
+    try:
+        app.run()
+        return 0
+    except KeyboardInterrupt:
+        # Fallback: if SIGINT became KeyboardInterrupt anyway
+        try:
+            app._exit()
+        except Exception:
+            pass
+        return 0
+    finally:
+        # Restore previous handler so we don't affect other code/tests
+        try:
+            signal.signal(signal.SIGINT, old_handler)
+        except Exception:
+            pass
 
 
 def run_web(cfg_path: Path, version: str, host: str, port: int, log_level: str) -> int:
     app = create_app(cfg_path=cfg_path, version=version)
-    uvicorn.run(app, host=host, port=port, log_level=log_level)
-    return 0
+    try:
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            log_level=log_level,
+            timeout_graceful_shutdown=1,  # small but nonzero helps it actually force-close
+            timeout_keep_alive=1,
+        )
+        return 0
+    except KeyboardInterrupt:
+        return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
