@@ -1,5 +1,14 @@
 #Linux
-pyinstaller --onefile --name voxcall   --add-data "voxcall/resources:voxcall/resources"   --add-data "voxcall/webui/templates:voxcall/webui/templates"   --add-data "voxcall/webui/static:voxcall/webui/static"   --collect-submodules PIL   --collect-data PIL   --hidden-import PIL._imagingtk   --hidden-import PIL._tkinter_finder   --collect-submodules ttkbootstrap   voxcall.p
+pyinstaller --onefile --name voxcall --noconfirm --clean \
+  --add-data "voxcall/resources:resources" \
+  --add-data "voxcall/webui/templates:voxcall/webui/templates" \
+  --add-data "voxcall/webui/static:voxcall/webui/static" \
+  --collect-submodules PIL \
+  --collect-data PIL \
+  --hidden-import PIL._imagingtk \
+  --hidden-import PIL._tkinter_finder \
+  --collect-submodules ttkbootstrap \
+  voxcall.py
 
 #Windows Command Prompt
 pyinstaller --onefile --name voxcall --noconsole ^
