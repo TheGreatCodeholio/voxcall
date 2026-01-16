@@ -161,9 +161,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub = p.add_subparsers(dest="mode", required=False)
 
-    sub.add_parser("gui", help="Launch desktop UI (Tk/ttkbootstrap).")
+    sub.add_parser("gui", help="Launch desktop UI.")
 
-    w = sub.add_parser("web", help="Launch Web UI (uvicorn).")
+    w = sub.add_parser("web", help="Launch Web UI.")
     w.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1 for safety).")
     w.add_argument("--port", type=int, default=8765, help="Bind port (default: 8765).")
     w.add_argument("--uvicorn-log-level", default="info", help="Uvicorn log level.")

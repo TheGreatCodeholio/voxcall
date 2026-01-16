@@ -43,6 +43,7 @@ class OpenMHzCfg:
 
 @dataclass
 class AppCfg:
+
     mp3_bitrate: int = 32000
     start_minimized: bool = False
     save_audio: bool = False
@@ -53,6 +54,7 @@ class AppCfg:
     audio: AudioCfg = field(default_factory=AudioCfg)
     bcfy: BroadcastifyCfg = field(default_factory=BroadcastifyCfg)
     rdio: RdioCfg = field(default_factory=RdioCfg)
+    icad_dispatch: RdioCfg = field(default_factory=RdioCfg)
     openmhz: OpenMHzCfg = field(default_factory=OpenMHzCfg)
 
 def load_config(path: Path) -> AppCfg:
@@ -95,7 +97,13 @@ def load_config(path: Path) -> AppCfg:
     cfg.rdio.api_url = get("RDIO_APIurl", cfg.rdio.api_url)
     cfg.rdio.system  = get("RDIO_system", cfg.rdio.system)
     cfg.rdio.talkgroup = get("RDIO_tg", cfg.rdio.talkgroup)
-
+    
+    # icad
+    cfg.icad_dispatch.api_key = get("ICAD_APIkey", cfg.icad_dispatch.api_key)
+    cfg.icad_dispatch.api_url = get("ICAD_APIurl", cfg.icad_dispatch.api_url)
+    cfg.icad_dispatch.system  = get("ICAD_system", cfg.icad_dispatch.system)
+    cfg.icad_dispatch.talkgroup = get("ICAD_tg", cfg.icad_dispatch.talkgroup)
+    
     # openmhz
     cfg.openmhz.api_key = get("openmhz_api_key", cfg.openmhz.api_key)
     cfg.openmhz.short_name = get("openmhz_short_name", cfg.openmhz.short_name)
@@ -142,7 +150,13 @@ def save_config(path: Path, cfg: AppCfg) -> None:
     p.set(s, "RDIO_APIurl", cfg.rdio.api_url)
     p.set(s, "RDIO_system", cfg.rdio.system)
     p.set(s, "RDIO_tg", cfg.rdio.talkgroup)
-
+    
+    # icad dispatch
+    p.set(s, "ICAD_APIkey", (cfg.icad_dispatch.api_key or "").strip())
+    p.set(s, "ICAD_APIurl", (cfg.icad_dispatch.api_url or "").strip())
+    p.set(s, "ICAD_system", (cfg.icad_dispatch.system or "").strip())
+    p.set(s, "ICAD_tg", (cfg.icad_dispatch.talkgroup or "").strip())
+    
     # openmhz
     p.set(s, "openmhz_api_key", cfg.openmhz.api_key)
     p.set(s, "openmhz_short_name", cfg.openmhz.short_name)

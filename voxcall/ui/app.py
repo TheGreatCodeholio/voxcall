@@ -109,6 +109,13 @@ class VoxCallGui:
         self.var_rdio_sys = StringVar(value=getattr(self.cfg.rdio, "system", ""))
         self.var_rdio_tg = StringVar(value=getattr(self.cfg.rdio, "talkgroup", ""))
 
+        # iCad Dispatch
+        icad = getattr(self.cfg, "icad_dispatch", None)
+        self.var_icad_url = StringVar(value=getattr(icad, "api_url", ""))
+        self.var_icad_key = StringVar(value=getattr(icad, "api_key", ""))
+        self.var_icad_sys = StringVar(value=getattr(icad, "system", ""))
+        self.var_icad_tg  = StringVar(value=getattr(icad, "talkgroup", ""))
+
         # OpenMHz
         self.var_omhz_key = StringVar(value=getattr(self.cfg.openmhz, "api_key", ""))
         self.var_omhz_short = StringVar(value=getattr(self.cfg.openmhz, "short_name", ""))
@@ -180,18 +187,21 @@ class VoxCallGui:
         self.tab_audio = tb.Frame(nb, padding=14)
         self.tab_bcfy = tb.Frame(nb, padding=14)
         self.tab_rdio = tb.Frame(nb, padding=14)
+        self.tab_icad = tb.Frame(nb, padding=14)
         self.tab_omhz = tb.Frame(nb, padding=14)
 
         nb.add(self.tab_general, text="General")
         nb.add(self.tab_audio, text="Audio")
         nb.add(self.tab_bcfy, text="Broadcastify")
         nb.add(self.tab_rdio, text="RDIO")
+        nb.add(self.tab_icad, text="iCad Dispatch")
         nb.add(self.tab_omhz, text="OpenMHz")
 
         self._build_tab_general()
         self._build_tab_audio()
         self._build_tab_bcfy()
         self._build_tab_rdio()
+        self._build_tab_icad()
         self._build_tab_omhz()
 
         # Footer card: controls
@@ -519,6 +529,25 @@ class VoxCallGui:
 
         tb.Label(f, text="If any field is blank, rdio-scanner upload is skipped.", bootstyle="light").pack(anchor=W, pady=(10, 0))
 
+    def _build_tab_icad(self):
+        f = self.tab_icad
+        lf = tb.Labelframe(f, text="iCad Dispatch", padding=14, bootstyle="light")
+        lf.pack(fill=X)
+
+        vcmd = (f.register(validate_number), "%P")
+
+        # same inputs/layout as RDIO
+        self._kv_row(lf, "API URL", self.var_icad_url, width=60)
+        self._kv_row(lf, "API Key", self.var_icad_key, width=60)
+        self._kv_row(lf, "System ID", self.var_icad_sys, width=20, validate="key", vcmd=vcmd)
+        self._kv_row(lf, "Talkgroup", self.var_icad_tg, width=20, validate="key", vcmd=vcmd)
+
+        tb.Label(
+            f,
+            text="If any field is blank, iCad Dispatch upload is skipped.",
+            bootstyle="light",
+        ).pack(anchor=W, pady=(10, 0))
+
     def _build_tab_omhz(self):
         f = self.tab_omhz
         lf = tb.Labelframe(f, text="OpenMHz", padding=14, bootstyle="light")
@@ -551,6 +580,7 @@ class VoxCallGui:
             self.var_save_audio, self.var_bitrate, self.var_archive_dir,
             self.var_bcfy_key, self.var_bcfy_sysid, self.var_bcfy_slot, self.var_bcfy_freq,
             self.var_rdio_url, self.var_rdio_key, self.var_rdio_sys, self.var_rdio_tg,
+            self.var_icad_url, self.var_icad_key, self.var_icad_sys, self.var_icad_tg,
             self.var_omhz_key, self.var_omhz_short, self.var_omhz_tgid,
         ]
 
@@ -734,50 +764,150 @@ class VoxCallGui:
     # ---------------- Config sync + actions ----------------
 
     def _sync_cfg_from_ui(self):
-        self.cfg.audio.device_index = self.name_to_index.get(
-            self.var_device.get(),
-            getattr(self.cfg.audio, "device_index", 0),
-        )
-        self.cfg.audio.in_channel = (self.var_channel.get() or "mono").strip()
-        self.cfg.audio.record_threshold = int(self.var_threshold.get() or 0)
+        # ---- small helpers ----
+        def _get_str(var, default: str = "") -> str:
+            try:
+                v = var.get()
+            except Exception:
+                return default
+            return (v or default).strip()
 
+        def _get_int(var, default: int = 0, *, min_v: int | None = None, max_v: int | None = None) -> int:
+            try:
+                v = int(var.get())
+            except Exception:
+                v = default
+            if min_v is not None:
+                v = max(min_v, v)
+            if max_v is not None:
+                v = min(max_v, v)
+            return v
+
+        def _get_float(var, default: float = 0.0, *, min_v: float | None = None, max_v: float | None = None) -> float:
+            try:
+                v = float(var.get())
+            except Exception:
+                v = default
+            if min_v is not None:
+                v = max(min_v, v)
+            if max_v is not None:
+                v = min(max_v, v)
+            return v
+
+        def _ensure_section(obj, attr: str):
+            """
+            Ensure obj.<attr> exists. If config model forbids unknown fields,
+            this may fail; we handle that gracefully.
+            """
+            sec = getattr(obj, attr, None)
+            if sec is not None:
+                return sec
+            try:
+                from types import SimpleNamespace
+                sec = SimpleNamespace()
+                setattr(obj, attr, sec)
+                return sec
+            except Exception:
+                return None
+
+        # ---- audio ----
+        audio = _ensure_section(self.cfg, "audio")
+        if audio is not None:
+            # device index: keep previous if lookup fails
+            try:
+                audio.device_index = self.name_to_index.get(
+                    _get_str(self.var_device),
+                    getattr(audio, "device_index", 0),
+                )
+            except Exception:
+                pass
+
+            try:
+                audio.in_channel = _get_str(self.var_channel, "mono")
+            except Exception:
+                pass
+
+            try:
+                audio.record_threshold = _get_int(self.var_threshold, 0, min_v=0, max_v=100)
+            except Exception:
+                pass
+
+            # tune: keep sane bounds
+            try:
+                audio.rectime = _get_float(self.var_rectime, 0.1, min_v=0.01, max_v=10.0)
+            except Exception:
+                pass
+            try:
+                audio.vox_silence_time = _get_float(self.var_silence, 2.0, min_v=0.0, max_v=60.0)
+            except Exception:
+                pass
+            try:
+                audio.timeout_time_sec = _get_int(self.var_timeout, 120, min_v=1, max_v=24 * 3600)
+            except Exception:
+                pass
+
+        # ---- general ----
         try:
-            self.cfg.audio.rectime = float(self.var_rectime.get())
+            self.cfg.save_audio = bool(self.var_save_audio.get())
         except Exception:
             pass
-        try:
-            self.cfg.audio.vox_silence_time = float(self.var_silence.get())
-        except Exception:
-            pass
-        try:
-            self.cfg.audio.timeout_time_sec = int(self.var_timeout.get())
-        except Exception:
-            pass
 
-        self.cfg.save_audio = bool(self.var_save_audio.get())
         try:
-            self.cfg.mp3_bitrate = int(self.var_bitrate.get())
+            # 8k..320k typical range, adjust if you want
+            self.cfg.mp3_bitrate = _get_int(self.var_bitrate, 32000, min_v=8000, max_v=320000)
         except Exception:
             pass
 
-        try:
-            setattr(self.cfg, "archive_dir", (self.var_archive_dir.get() or "").strip())
-        except Exception:
-            pass
+        # only set if your config supports it
+        archive_dir = _get_str(self.var_archive_dir, "")
+        if archive_dir:
+            try:
+                setattr(self.cfg, "archive_dir", archive_dir)
+            except Exception:
+                pass
 
-        self.cfg.bcfy.api_key = self.var_bcfy_key.get().strip()
-        self.cfg.bcfy.system_id = self.var_bcfy_sysid.get().strip()
-        self.cfg.bcfy.slot_id = self.var_bcfy_slot.get().strip() or "1"
-        self.cfg.bcfy.freq_mhz = self.var_bcfy_freq.get().strip()
+        # ---- broadcastify ----
+        bcfy = _ensure_section(self.cfg, "bcfy")
+        if bcfy is not None:
+            try:
+                bcfy.api_key = _get_str(self.var_bcfy_key)
+                bcfy.system_id = _get_str(self.var_bcfy_sysid)
+                bcfy.slot_id = _get_str(self.var_bcfy_slot, "1") or "1"
+                bcfy.freq_mhz = _get_str(self.var_bcfy_freq)
+            except Exception:
+                pass
 
-        self.cfg.rdio.api_url = self.var_rdio_url.get().strip()
-        self.cfg.rdio.api_key = self.var_rdio_key.get().strip()
-        self.cfg.rdio.system = self.var_rdio_sys.get().strip()
-        self.cfg.rdio.talkgroup = self.var_rdio_tg.get().strip()
+        # ---- rdio ----
+        rdio = _ensure_section(self.cfg, "rdio")
+        if rdio is not None:
+            try:
+                rdio.api_url = _get_str(self.var_rdio_url)
+                rdio.api_key = _get_str(self.var_rdio_key)
+                rdio.system = _get_str(self.var_rdio_sys)
+                rdio.talkgroup = _get_str(self.var_rdio_tg)
+            except Exception:
+                pass
 
-        self.cfg.openmhz.api_key = self.var_omhz_key.get().strip()
-        self.cfg.openmhz.short_name = self.var_omhz_short.get().strip()
-        self.cfg.openmhz.tgid = self.var_omhz_tgid.get().strip()
+        # ---- icad dispatch ----
+        icad = _ensure_section(self.cfg, "icad_dispatch")
+        if icad is not None:
+            try:
+                icad.api_url = _get_str(self.var_icad_url)
+                icad.api_key = _get_str(self.var_icad_key)
+                icad.system = _get_str(self.var_icad_sys)
+                icad.talkgroup = _get_str(self.var_icad_tg)
+            except Exception:
+                pass
+
+        # ---- openmhz ----
+        openmhz = _ensure_section(self.cfg, "openmhz")
+        if openmhz is not None:
+            try:
+                openmhz.api_key = _get_str(self.var_omhz_key)
+                openmhz.short_name = _get_str(self.var_omhz_short)
+                openmhz.tgid = _get_str(self.var_omhz_tgid)
+            except Exception:
+                pass
 
     def _save_only(self, silent: bool = False):
         self._sync_cfg_from_ui()

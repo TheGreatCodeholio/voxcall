@@ -1,6 +1,22 @@
 let currentConfig = null;
 let dirtyPatch = {};
 let dirtyTimer = null;
+let toastObj = null;
+
+function showToast(message, variant = "success") {
+    const toastEl = el("saveToast");
+    const bodyEl = el("saveToastBody");
+    if (!toastEl || !bodyEl) return;
+
+    bodyEl.textContent = message;
+
+    // swap bootstrap contextual class
+    toastEl.classList.remove("text-bg-success", "text-bg-danger", "text-bg-warning", "text-bg-info", "text-bg-secondary");
+    toastEl.classList.add(`text-bg-${variant}`);
+
+    if (!toastObj) toastObj = new bootstrap.Toast(toastEl, { delay: 1600 });
+    toastObj.show();
+}
 
 const el = (id) => document.getElementById(id);
 
@@ -89,6 +105,7 @@ function scheduleAutosave(patchObj) {
     dirtyPatch = {};
     try {
       await apiPost("/api/config", payload, "PATCH");
+      showToast("Autosaved", "success");
     } catch (e) {
       console.error(e);
     }
@@ -203,6 +220,16 @@ async function renderConfig() {
     <div class="text-body-secondary small">If any field is blank, rdio-scanner upload is skipped.</div>
   `;
 
+  // iCad Dispatch
+  el("tab-icad").innerHTML = `
+    <h5 class="mb-3">iCad Dispatch</h5>
+    ${inputRow("API URL", `<input class="form-control" id="icadUrl">`)}
+    ${inputRow("API Key", `<input class="form-control" id="icadKey">`)}
+    ${inputRow("System ID", `<input class="form-control" id="icadSys">`)}
+    ${inputRow("Talkgroup", `<input class="form-control" id="icadTg">`)}
+    <div class="text-body-secondary small">If any field is blank, iCad Dispatch upload is skipped.</div>
+  `;
+
   // OpenMHz
   el("tab-openmhz").innerHTML = `
     <h5 class="mb-3">OpenMHz</h5>
@@ -281,6 +308,19 @@ function bindConfigToUI(devices) {
   el("rdioSys").addEventListener("input", (e) => scheduleAutosave({rdio:{system: e.target.value}}));
   el("rdioTg").addEventListener("input", (e) => scheduleAutosave({rdio:{talkgroup: e.target.value}}));
 
+  // iCad Dispatch
+  const icad = currentConfig.icad_dispatch || {}; // backend should expose this key
+
+  el("icadUrl").value = icad.api_url || "";
+  el("icadKey").value = icad.api_key || "";
+  el("icadSys").value = icad.system || "";
+  el("icadTg").value = icad.talkgroup || "";
+
+  el("icadUrl").addEventListener("input", (e) => scheduleAutosave({icad_dispatch:{api_url: e.target.value}}));
+  el("icadKey").addEventListener("input", (e) => scheduleAutosave({icad_dispatch:{api_key: e.target.value}}));
+  el("icadSys").addEventListener("input", (e) => scheduleAutosave({icad_dispatch:{system: e.target.value}}));
+  el("icadTg").addEventListener("input", (e) => scheduleAutosave({icad_dispatch:{talkgroup: e.target.value}}));
+
   // openmhz
   el("omhzKey").value = currentConfig.openmhz.api_key || "";
   el("omhzShort").value = currentConfig.openmhz.short_name || "";
@@ -301,14 +341,29 @@ function initButtons() {
     applyState(r.state);
   });
   el("btnSave").addEventListener("click", async () => {
+    const btn = el("btnSave");
+
     // force-save current dirty patch immediately
     const payload = dirtyPatch;
     dirtyPatch = {};
     if (dirtyTimer) clearTimeout(dirtyTimer);
+
+    // tiny UX: disable button while saving
+    btn.disabled = true;
+
     try {
-      await apiPost("/api/config", payload, "PATCH");
+      if (payload && Object.keys(payload).length) {
+        await apiPost("/api/config", payload, "PATCH");
+      } else {
+        // if you keep the endpoint; otherwise just toast "Nothing to save"
+        await apiPost("/api/config/save");
+      }
+      showToast("Saved ✓", "success");
     } catch (e) {
       console.error(e);
+      showToast("Save failed (check console/logs)", "danger");
+    } finally {
+      btn.disabled = false;
     }
   });
 }

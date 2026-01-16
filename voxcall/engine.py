@@ -51,7 +51,7 @@ class VoxCallEngine:
         self.hooks = hooks or UiHooks()
         self._stop = threading.Event()
 
-        # NEW: stream consumes AudioCfg directly; it will probe a valid sample rate
+        # stream consumes AudioCfg directly; it will probe a valid sample rate
         self.stream = AudioStream(cfg.audio)
 
         self.bcfy = BcfyClient(
@@ -66,6 +66,13 @@ class VoxCallEngine:
             api_key=cfg.rdio.api_key,
             system=cfg.rdio.system,
             talkgroup=cfg.rdio.talkgroup,
+        )
+        icad = getattr(cfg, "icad_dispatch", None)
+        self.icad_dispatch = RdioClient(
+            api_url=getattr(icad, "api_url", "") if icad else "",
+            api_key=getattr(icad, "api_key", "") if icad else "",
+            system=getattr(icad, "system", "") if icad else "",
+            talkgroup=getattr(icad, "talkgroup", "") if icad else "",
         )
         self.openmhz = OpenMHzClient(
             api_key=cfg.openmhz.api_key,
@@ -237,6 +244,7 @@ class VoxCallEngine:
         # fan-out uploads + cleanup (threads like original)
         threading.Thread(target=self.bcfy.upload_mp3, args=(str(mp3_path), duration), daemon=True).start()
         threading.Thread(target=self.rdio.upload, args=(str(mp3_path),), daemon=True).start()
+        threading.Thread(target=self.icad_dispatch.upload, args=(str(mp3_path),), daemon=True).start()
         threading.Thread(target=self.openmhz.upload, args=(str(m4a_path), start_time, duration), daemon=True).start()
 
         # cleanup derives mp3/m4a names from wav_path (even if wav is deleted)

@@ -87,6 +87,7 @@
                 <li class="nav-item"><a class="nav-link" data-tab="audio" href="#">Audio</a></li>
                 <li class="nav-item"><a class="nav-link" data-tab="bcfy" href="#">Broadcastify</a></li>
                 <li class="nav-item"><a class="nav-link" data-tab="rdio" href="#">RDIO</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="icad" href="#">iCad Dispatch</a></li>
                 <li class="nav-item"><a class="nav-link" data-tab="openmhz" href="#">OpenMHz</a></li>
             </ul>
         </div>
@@ -96,11 +97,24 @@
             <div class="tabpane d-none" id="tab-audio"></div>
             <div class="tabpane d-none" id="tab-bcfy"></div>
             <div class="tabpane d-none" id="tab-rdio"></div>
+            <div class="tabpane d-none" id="tab-icad"></div>
             <div class="tabpane d-none" id="tab-openmhz"></div>
         </div>
     </div>
 
 </div>
+<!-- Save toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div id="saveToast" class="toast text-bg-success border-0" role="alert" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="saveToastBody">Saved.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS (needed for toast) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="/static/app.js"></script>
 </body>

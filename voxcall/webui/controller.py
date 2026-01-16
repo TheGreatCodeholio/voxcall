@@ -222,6 +222,12 @@ class VoxCallController:
                 "system": getattr(self.cfg.rdio, "system", "") or "",
                 "talkgroup": getattr(self.cfg.rdio, "talkgroup", "") or "",
             },
+            "icad_dispatch": {
+                "api_url": getattr(self.cfg.icad_dispatch, "api_url", "") or "",
+                "api_key": getattr(self.cfg.icad_dispatch, "api_key", "") or "",
+                "system": getattr(self.cfg.icad_dispatch, "system", "") or "",
+                "talkgroup": getattr(self.cfg.icad_dispatch, "talkgroup", "") or "",
+            },
             "openmhz": {
                 "api_key": getattr(self.cfg.openmhz, "api_key", "") or "",
                 "short_name": getattr(self.cfg.openmhz, "short_name", "") or "",
@@ -248,6 +254,7 @@ class VoxCallController:
         general = patch.get("general") or {}
         bcfy = patch.get("bcfy") or {}
         rdio = patch.get("rdio") or {}
+        icad = patch.get("icad_dispatch") or {}
         omhz = patch.get("openmhz") or {}
 
         # audio
@@ -298,6 +305,16 @@ class VoxCallController:
             self.cfg.rdio.system = str(rdio["system"] or "").strip()
         if "talkgroup" in rdio:
             self.cfg.rdio.talkgroup = str(rdio["talkgroup"] or "").strip()
+
+        # icad
+        if "api_url" in icad:
+            self.cfg.icad_dispatch.api_url = str(icad["api_url"] or "").strip()
+        if "api_key" in icad:
+            self.cfg.icad_dispatch.api_key = str(icad["api_key"] or "").strip()
+        if "system" in icad:
+            self.cfg.icad_dispatch.system = str(icad["system"] or "").strip()
+        if "talkgroup" in icad:
+            self.cfg.icad_dispatch.talkgroup = str(icad["talkgroup"] or "").strip()
 
         # openmhz
         if "api_key" in omhz:

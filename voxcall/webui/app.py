@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -80,7 +80,7 @@ def create_app(cfg_path: Path, version: str) -> FastAPI:
 
     # Autosave is already true because ctrl.patch_config() calls save_config()
     @app.patch("/api/config")
-    async def api_patch_config(patch: Dict[str, Any]):
+    async def api_patch_config(patch: Dict[str, Any] = Body(...)):
         ctrl.patch_config(patch)
         return JSONResponse({"ok": True, "config": ctrl.get_config(), "state": ctrl.get_state()})
 
