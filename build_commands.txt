@@ -15,9 +15,9 @@ pyinstaller --onefile --name voxcall --noconsole ^
   voxcall.py
 
 #Windows Power Shell
-pyinstaller --onefile --name voxcall --noconsole `
+pyinstaller --onefile --name voxcall --noconsole --clean `
   --icon "voxcall\resources\voxcall.ico" `
-  --add-data "voxcall\resources;voxcall\resources" `
+  --add-data "voxcall\resources;resources" `
   --add-data "voxcall\webui\templates;voxcall\webui\templates" `
   --add-data "voxcall\webui\static;voxcall\webui\static" `
   --collect-submodules PIL `
