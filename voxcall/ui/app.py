@@ -46,6 +46,7 @@ class VoxCallGui:
         self.version = version
         self.cfg = load_config(cfg_path)
 
+        self._set_windows_appid()
         self.root = tb.Window(themename=theme)
         self.root.title(f"VoxCall • {version}")
         self._apply_window_icon()
@@ -130,29 +131,41 @@ class VoxCallGui:
 
     # ---------------- UI ----------------
     def _apply_window_icon(self) -> None:
-        """
-        Window/title/alt-tab icon:
-        - Use PNG via iconphoto everywhere (best cross-platform)
-        - Also set ICO via iconbitmap on Windows for best compatibility
-        """
-
         ico = resource_path("resources/voxcall.ico")
         png = resource_path("resources/voxcall.png")
 
-        # Cross-platform window icon (Linux/Windows alt-tab/titlebar)
-        if png.exists():
+        # Force absolute strings (helps Tk on Windows)
+        ico_s = str(ico.resolve()) if ico.exists() else ""
+        png_s = str(png.resolve()) if png.exists() else ""
+
+        # 1) Windows: set ICO first (taskbar/titlebar)
+        if sys.platform.startswith("win") and ico_s:
             try:
-                self._icon_img = PhotoImage(file=str(png))  # keep reference!
+                self.root.iconbitmap(ico_s)
+            except Exception as e:
+                log.warning("iconbitmap failed (%s): %s", ico_s, e)
+
+        # 2) Then set PNG iconphoto (helps alt-tab and some cases)
+        if png_s:
+            try:
+                self._icon_img = PhotoImage(file=png_s)  # keep reference!
                 self.root.iconphoto(True, self._icon_img)
             except Exception as e:
-                log.warning("iconphoto failed (%s): %s", png, e)
+                log.warning("iconphoto failed (%s): %s", png_s, e)
 
-        # Windows-specific: also set .ico (helps in some cases)
-        if sys.platform.startswith("win") and ico.exists():
+        # 3) Some Windows/Tk combos apply after window realization; nudge once
+        if sys.platform.startswith("win") and ico_s:
+            self.root.after(0, lambda: self.root.iconbitmap(ico_s))
+
+    def _set_windows_appid(self):
+        if sys.platform.startswith("win"):
             try:
-                self.root.iconbitmap(default=str(ico))
-            except Exception as e:
-                log.warning("iconbitmap failed (%s): %s", ico, e)
+                import ctypes
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                    "ThinlineDynamicSolutions.VoxCall"
+                )
+            except Exception:
+                pass
 
     def _build(self):
         # One “surface” frame so everything feels like one window, not nested boxes.
