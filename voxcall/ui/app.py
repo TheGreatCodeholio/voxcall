@@ -134,31 +134,46 @@ class VoxCallGui:
         ico = resource_path("resources/voxcall.ico")
         png = resource_path("resources/voxcall.png")
 
-        # Force absolute strings (helps Tk on Windows)
         ico_s = str(ico.resolve()) if ico.exists() else ""
         png_s = str(png.resolve()) if png.exists() else ""
 
-        # 1) Windows: set ICO first (taskbar/titlebar)
+        # --- Linux: dock matching (needs a .desktop with StartupWMClass)
+        if sys.platform.startswith("linux"):
+            try:
+                self.root.wm_class("voxcall", "VoxCall")
+            except Exception as e:
+                log.warning("wm_class failed: %s", e)
+
+        # --- Windows: titlebar icon (top-left) prefers .ico
         if sys.platform.startswith("win") and ico_s:
             try:
-                self.root.iconbitmap(ico_s)
+                self.root.iconbitmap(default=ico_s)
             except Exception as e:
                 log.warning("iconbitmap failed (%s): %s", ico_s, e)
 
-        # 2) Then set PNG iconphoto (helps alt-tab and some cases)
+        # --- Cross-platform: provide multiple sizes to wm iconphoto
         if png_s:
             try:
-                self._icon_img = PhotoImage(file=png_s)  # keep reference!
-                self.root.iconphoto(True, self._icon_img)
+                from PIL import Image, ImageTk
+
+                base = Image.open(png_s).convert("RGBA")
+                sizes = (16, 20, 24, 32, 40, 48, 64, 128, 256)
+
+                self._icon_imgs = []
+                for s in sizes:
+                    im = base.resize((s, s), Image.LANCZOS)
+                    self._icon_imgs.append(ImageTk.PhotoImage(im))
+
+                self.root.iconphoto(True, *self._icon_imgs)
             except Exception as e:
                 log.warning("iconphoto failed (%s): %s", png_s, e)
 
-        # 3) Some Windows/Tk combos apply after window realization; nudge once
+        # --- Some Tk/Windows combos apply after the window is realized; nudge once
         if sys.platform.startswith("win") and ico_s:
-            self.root.after(0, lambda: self.root.iconbitmap(ico_s))
+            self.root.after_idle(lambda: self.root.iconbitmap(default=ico_s))
 
     def _set_windows_appid(self):
-        if sys.platform.startswith("win"):
+        if sys.platform.startswith("win") and not getattr(sys, "frozen", False):
             try:
                 import ctypes
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(

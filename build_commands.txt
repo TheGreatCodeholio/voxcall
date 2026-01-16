@@ -10,6 +10,19 @@ pyinstaller --onefile --name voxcall --noconfirm --clean \
   --collect-submodules ttkbootstrap \
   voxcall.py
 
+mkdir -p ~/.local/share/icons/hicolor/256x256/apps
+cp /path/to/voxcall.png ~/.local/share/icons/hicolor/256x256/apps/voxcall.png
+update-desktop-database ~/.local/share/applications >/dev/null 2>&1 || true
+
+[Desktop Entry]
+Type=Application
+Name=VoxCall
+Exec=/full/path/to/voxcall
+Icon=voxcall
+Terminal=false
+Categories=AudioVideo;Utility;
+StartupWMClass=VoxCall
+
 #Windows Command Prompt
 pyinstaller --onefile --name voxcall --noconsole ^
   --icon "voxcall\resources\voxcall.ico" ^
